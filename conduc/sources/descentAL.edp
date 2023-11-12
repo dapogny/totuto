@@ -1,0 +1,39 @@
+/* Calculation of the descent direction according to the Null Space optimization algo.
+   taking into account the different gradients */
+include "./sources/inout.idp"
+include "./sources/macros.idp"
+
+/* Get mesh and sol names, and global parameters */
+string MESH       = getsParam(EXCHFILE,"MeshName");
+string GRAD       = getsParam(EXCHFILE,"GradName");
+string GRADV      = getsParam(EXCHFILE,"VolGradName");
+string GRADMT     = getsParam(EXCHFILE,"MTGradName");
+real vol          = getrParam(EXCHFILE,"Volume");
+real vtarg        = getrParam(EXCHFILE,"VolumeTarget");
+real lmo           = getrParam(EXCHFILE,"lmAL");
+real muo           = getrParam(EXCHFILE,"penAL");
+
+/* Load mesh */
+mesh Th = readmesh(MESH);
+
+/* Finite element spaces and functions */
+fespace Vh(Th,P1);
+Vh g,gJ,gV,v;
+Vh xiJ,xiG,xiJtr,xiGtr,normxiJ,normxiG;
+
+/* Other parameters */
+real EPS = 1.e-6;
+real maxxiJ,maxxiG,mMaxxiJ,alphaJ,alphaG;
+real m,ell,gmax;
+
+/* Load gradients */
+loadsol(GRADV,gV[]);
+loadsol(GRADMT,gJ[]);
+  
+/* Descent direction */
+g = - gJ + lmo * gV - muo * (vol-vtarg)*gV;
+gmax = max(-g[].min,g[].max);
+g = g / (EPS^2 + gmax);
+
+/* Save gradient */
+printsol(GRAD,g[]);

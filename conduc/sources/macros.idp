@@ -1,0 +1,27 @@
+/* General macros ansd global parameters for shape and topology optimization */
+string EXCHFILE   = "./res/exch.data";
+
+/* Inner product for extension / regularization */
+real alpha        = getrParam(EXCHFILE,"Regularization");
+real simpp        = getrParam(EXCHFILE,"SimpPen");
+macro psreg(u,v) ( int2d(Th)(alpha^2*(dx(u)*dx(v)+dy(u)*dy(v)) + u*v) ) // EOM
+
+/* Conductivity parameters and source */
+real gammaint  = 1000.0;
+real gammaext  = 1.0;
+real f         = 1.0;
+
+/* Density interpolation profiles for conductivity coefficient */
+macro zeta(t) ( gammaext + (gammaint-gammaext)*t^simpp ) // EOM
+macro zetaprime(t) ( simpp*(gammaint-gammaext)*t^(simpp-1) ) // EOM
+
+/* Heaviside projection filter */
+real beta         = getrParam(EXCHFILE,"HeavisideRegularization");
+// macro heav(t) (t) // EOM
+// macro heavprime(t) ( 1 ) // EOM
+
+macro heav(t) ( ( tanh(0.5*beta) + tanh(beta*(t-0.5)) )  / ( tanh(0.5*beta) + tanh(0.5*beta) ) ) // EOM
+macro heavprime(t) ( beta * 1.0 / (cosh(beta*(t-0.5)))^2 * 1.0 / ( tanh(0.5*beta) + tanh(0.5*beta) ) ) // EOM
+
+// macro heav(t) ( 1.0-exp(-beta*t) + exp(-beta)*t ) // EOM
+// macro heavprime(t) ( exp(-beta) + beta*exp(-beta*t) ) // EOM

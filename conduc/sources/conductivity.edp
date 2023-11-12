@@ -1,0 +1,30 @@
+/* Resolution of the conductivity equation on the input shape */
+include "./sources/inout.idp"
+include "./sources/macros.idp"
+
+/* Get mesh and sol names, and global parameters */
+string MESH       = getsParam(EXCHFILE,"MeshName");
+string PHIR       = getsParam(EXCHFILE,"PhiRName");
+string SOL        = getsParam(EXCHFILE,"SolName");
+int REFDIR        = getiParam(EXCHFILE,"Dirichlet");
+
+/* Load mesh */
+mesh Th = readmesh(MESH);
+
+/* Finite element spaces and functions */
+fespace Vh(Th,P1);
+Vh hr,v,u;
+
+/* Load (regularized) density function */
+loadsol(PHIR,hr[]);
+
+/* Variational formulation of the problem */
+problem conduc(u,v) = int2d(Th)( zeta(heav(hr))*(dx(u)*dx(v) + dy(u)*dy(v)) )
+                                   - int2d(Th)(f*v)
+                                   + on(REFDIR,u=0.0);
+
+/* Solve problem */
+conduc;
+
+/* Save solution */
+printsol(SOL,u[]);

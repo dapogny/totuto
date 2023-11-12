@@ -1,0 +1,50 @@
+/* Calculation of the mean temperature of the input design */
+include "./sources/inout.idp"
+include "./sources/macros.idp"
+
+/* Get mesh and sol names, and global parameters */
+string MESH       = getsParam(EXCHFILE,"MeshName");
+string PHIR       = getsParam(EXCHFILE,"PhiRName");
+string SOL        = getsParam(EXCHFILE,"SolName");
+string GRAD       = getsParam(EXCHFILE,"MTGradName");
+int REFDIR        = getiParam(EXCHFILE,"Dirichlet");
+
+/* Loading mesh */
+mesh Th = readmesh(MESH);
+
+/* Finite element spaces and functions */
+fespace Vh(Th,P1);
+fespace Vh0(Th,P0);
+Vh u,p,hr,g,v;
+Vh0 g0;
+real volT,MT;
+
+/* Total volume of the bounding box */
+volT = int2d(Th)(1.0);
+
+/* Read (regularized) density and solution */
+loadsol(PHIR,hr[]);
+loadsol(SOL,u[]);
+
+/* Regularization for the gradient */
+problem sdreg(g,v) = psreg(g,v)
+                      - int2d(Th)(g0*v);
+
+/* Calculate mean temperature */
+MT = 1.0 / volT * int2d(Th)(u);
+
+/* Calculate adjoint state */
+problem adjoint(p,v) = int2d(Th)( zeta(heav(hr))*(dx(p)*dx(v) + dy(p)*dy(v)) )
+                                   - int2d(Th)( -1.0/volT*v )
+                                   + on(REFDIR,p=0.0);
+
+adjoint;
+
+/* Calculate regularized gradient (not descent direction) of mean temperature */
+g0 = zetaprime(heav(hr))*heavprime(hr)*( dx(u)*dx(p) + dy(u)*dy(p) );
+
+sdreg;
+
+/* Save results */
+printsol(GRAD,g[]);
+setrParam(EXCHFILE,"MT",MT);

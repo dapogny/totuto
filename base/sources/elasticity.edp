@@ -1,0 +1,32 @@
+/* Resolution of the linearized elasticity equation on the input shape */
+include "./sources/inout.idp"
+include "./sources/macros.idp"
+
+/* Get mesh and sol names, and global parameters */
+string MESH       = getsParam(EXCHFILE,"MeshName");
+string PHIR       = getsParam(EXCHFILE,"PhiRName");
+string SOL        = getsParam(EXCHFILE,"SolName");
+int REFDIR        = getiParam(EXCHFILE,"Dirichlet");
+int REFNEU        = getiParam(EXCHFILE,"Neumann");
+
+/* Load mesh */
+mesh Th = readmesh(MESH);
+
+/* Finite element spaces and functions */
+fespace Vh(Th,P1);
+Vh hr,v,ux,uy,vx,vy;
+
+/* Load (regularized) density function */
+loadsol(PHIR,hr[]);
+
+/* Variational formulation of the problem */
+problem elas([ux,uy],[vx,vy]) = int2d(Th)(zetamu(heav(hr))*(2.0*dx(ux)*dx(vx) + (dx(uy)+dy(ux))*(dx(vy)+dy(vx))
+                                        + 2.0*dy(uy)*dy(vy)) + zetalm(heav(hr))*(dx(ux)+dy(uy))*(dx(vx)+dy(vy)))
+                                   - int1d(Th,REFNEU)(gx*vx+gy*vy)
+                                   + on(REFDIR,ux=0.0,uy=0.0);
+
+/* Solve problem */
+elas;
+
+/* Save solution */
+printvec2(SOL,ux[],uy[]);

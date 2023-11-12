@@ -1,0 +1,20 @@
+/* Creation of the initial density function */
+include "./sources/inout.idp"
+include "./sources/macros.idp"
+
+/* Get mesh and sol names */
+string MESH     = getsParam(EXCHFILE,"MeshName");
+string PHI      = getsParam(EXCHFILE,"PhiName");
+
+/* Read mesh */
+mesh Th = readmesh(MESH);
+
+/* Finite element space and functions */
+fespace Vh(Th,P1);
+Vh h;
+
+/* Initialize density as intermediate everywhere (and filter) */
+h = 0.5;
+
+/* Save density function */
+printsol(PHI,h[]);
